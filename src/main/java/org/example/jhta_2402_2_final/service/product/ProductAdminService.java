@@ -27,8 +27,8 @@ public class ProductAdminService {
     public String getProductCompanyId(String productCompanyName){
         return productDao.getProductCompanyId(productCompanyName);
     }
-    public int insertProductCompanyMember(String userId , String productCompanyId){
-       return memberDao.insertProductCompanyMember(userId,productCompanyId);
+    public int insertProductCompanyMember(String userPk , String productCompanyId){
+       return memberDao.insertProductCompanyMember(userPk,productCompanyId);
     }
     public List<SourcePriceViewDto> getProductSourceList(){
         return productDao.getProductSourceList();
@@ -85,7 +85,9 @@ public class ProductAdminService {
                 .productCompanyName(productCompanyInsertDto.getProductCompanyName())
                 .productCompanyAddress(productCompanyInsertDto.getProductCompanyAddress())
                 .build();
-        productDao.insertProductCompany(productCompanyDto);
+        if(productDao.getProductCompanyId(productCompanyDto.getProductCompanyName()).isEmpty()){
+            productDao.insertProductCompany(productCompanyDto);
+        }
         return 0;
     }
 }

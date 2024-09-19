@@ -12,6 +12,6 @@ public interface MemberDao {
     MemberDto selectUserWithRole(String username);
     boolean checkUserIdExists(String userId);
     String getProductMemberId(String userEmail);
-    int insertProductCompanyMember(String userId ,String productCompanyId);
+    int insertProductCompanyMember(String userPk ,String productCompanyId);
 
 }

@@ -22,9 +22,9 @@ public class ProductAdminController {
     @PostMapping("/insertProductCompany")
     public String insertProductCompany(ProductCompanyInsertDto productCompanyInsertDto){
         productAdminService.insertProductCompany(productCompanyInsertDto);
-        String userId = productAdminService.getProductMemberId(productCompanyInsertDto.getUserEmail());
+        String userPk = productAdminService.getProductMemberId(productCompanyInsertDto.getUserEmail());
         String productCompanyId = productAdminService.getProductCompanyId(productCompanyInsertDto.getProductCompanyName());
-        productAdminService.insertProductCompanyMember(userId,productCompanyId);
+        productAdminService.insertProductCompanyMember(userPk,productCompanyId);
         return "redirect:/product/admin/main";
     }
 }

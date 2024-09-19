@@ -29,6 +29,6 @@
     </select>
     <insert id="insertProductCompanyMember" parameterType="String">
         INSERT INTO PRODUCT_COMPANY_MEMBER (PRODUCT_COMPANY_MEMBER_ID,USER_ID,PRODUCT_COMPANY_ID)
-        VALUES(UUID(),#{userId},#{productCompanyId});
+        VALUES(UUID(),#{userPk},#{productCompanyId});
     </insert>
 </mapper>
