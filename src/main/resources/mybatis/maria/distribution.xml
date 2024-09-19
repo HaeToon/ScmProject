@@ -1,0 +1,152 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.jhta_2402_2_final.dao.distribution.DistributionOrderDao">
+
+ <select id="selectKitOrder" resultType="KitOrderDistDto">
+     SELECT
+         KIT_ORDER_ID as kitOrderId,      -- 주문PK
+         KIT_COMPANY_ID as kitCompanyId,     -- 밀키트판매업체FK
+         MEALKIT_ID as mealkitId,         -- 밀키트FK
+         PRICE,              -- 밀키트 가격
+         QUANTITY,           -- 개수
+         PRODUCT_ORDER_DATE as orderDate, -- 주문 일자
+         STATUS_ID as statusId           -- 상태FK
+     FROM
+         KIT_ORDER
+ </select>
+
+
+
+    <select id="selectKitNameOrder" resultType="KitOrderNameDto">
+        SELECT
+            KO.KIT_ORDER_ID as kitOrderId,           -- 주문PK
+            KC.NAME AS companyId,   -- 판매업체 이름
+            MK.NAME AS mealkitName,   -- 밀키트 이름
+            KO.PRICE,                  -- 밀키트 가격
+            KO.QUANTITY,               -- 밀키트 개수
+            (KO.PRICE * KO.QUANTITY) AS totalPrice,  -- 총합 (가격 * 개수)
+            KO.PRODUCT_ORDER_DATE as orderDate,     -- 주문 일자
+            S.STATUS  -- 주문 상태
+        FROM
+            KIT_ORDER KO
+                JOIN
+            KIT_COMPANY KC ON KO.KIT_COMPANY_ID = KC.KIT_COMPANY_ID
+                JOIN
+            MEALKIT MK ON KO.MEALKIT_ID = MK.MEALKIT_ID
+                JOIN
+            STATUS S ON KO.STATUS_ID = S.STATUS_ID;
+    </select>
+
+
+    <select id="selectSourceNameOrder" resultType="KitOrderSourceNameDto">
+        SELECT DISTINCT
+            KO.KIT_ORDER_ID AS kitOrderId,    -- 밀키트 주문 ID
+            MK.NAME AS mealkitName,           -- 밀키트 이름
+            KS.SOURCE_ID AS sourceId,         -- 재료 ID
+            S.NAME AS sourceName,             -- 재료 이름
+            KS.QUANTITY AS quantity          -- 재료 수량
+        FROM
+            KIT_ORDER KO
+                JOIN
+            KIT_SOURCE KS ON KO.MEALKIT_ID = KS.MEALKIT_ID   -- KIT_ORDER와 KIT_SOURCE를 MEALKIT_ID로 조인
+                JOIN
+            MEALKIT MK ON KO.MEALKIT_ID = MK.MEALKIT_ID     -- MEALKIT 테이블에서 밀키트 이름 가져오기
+                JOIN
+            SOURCE S ON KS.SOURCE_ID = S.SOURCE_ID         -- SOURCE 테이블에서 재료 이름 가져오기
+        ORDER BY
+            KO.KIT_ORDER_ID, sourceName;
+    </select>
+
+    <select id="selectMinPriceSource" resultType="MinPriceSourceDto">
+        WITH RankedPrices AS (
+            SELECT
+                KS.SOURCE_ID AS sourceId,
+                SP.PRICE AS sourcePrice,
+                PC.NAME AS productCompanyName,
+                PC.PRODUCT_COMPANY_ID AS productCompanyId,
+                ROW_NUMBER() OVER (PARTITION BY KS.SOURCE_ID ORDER BY SP.PRICE) AS rn
+            FROM
+                KIT_ORDER KO
+                    JOIN KIT_SOURCE KS ON KO.MEALKIT_ID = KS.MEALKIT_ID
+                    JOIN SOURCE_PRICE SP ON KS.SOURCE_ID = SP.SOURCE_ID
+                    JOIN PRODUCT_COMPANY PC ON SP.PRODUCT_COMPANY_ID = PC.PRODUCT_COMPANY_ID
+            WHERE
+                SP.PRICE = (
+                    SELECT MIN(SP2.PRICE)
+                    FROM SOURCE_PRICE SP2
+                    WHERE SP2.SOURCE_ID = KS.SOURCE_ID
+                )
+        )
+
+        SELECT
+            KO.KIT_ORDER_ID AS kitOrderId,
+            KO.PRODUCT_ORDER_DATE AS orderDate,
+            MK.NAME AS mealkitName,
+            KO.QUANTITY AS mealkitQuantity,
+            KS.SOURCE_ID AS sourceId,
+            S.NAME AS sourceName,
+            KS.QUANTITY AS ingredientQuantity,
+            RP.sourcePrice AS sourcePrice,
+            RP.productCompanyName AS productCompanyName,
+            RP.productCompanyId AS productCompanyId,
+            (KO.QUANTITY * KS.QUANTITY) AS totalQuantity
+        FROM
+            KIT_ORDER KO
+                JOIN KIT_SOURCE KS ON KO.MEALKIT_ID = KS.MEALKIT_ID
+                JOIN MEALKIT MK ON KO.MEALKIT_ID = MK.MEALKIT_ID
+                JOIN SOURCE S ON KS.SOURCE_ID = S.SOURCE_ID
+                JOIN RankedPrices RP ON KS.SOURCE_ID = RP.sourceId AND RP.rn = 1
+        ORDER BY
+            orderDate DESC;
+    </select>
+
+
+
+
+    <insert id="insertProductOrder">
+        INSERT INTO PRODUCT_ORDER (
+            PRODUCT_ORDER_ID ,
+            PRODUCT_COMPANY_ID,
+            SOURCE_ID,
+            QUANTITY,
+            PRICE,
+            PRODUCT_ORDER_DATE,
+            STATUS_ID,
+            KIT_ORDER_ID
+        ) VALUES (
+                     #{productOrderId},  -- 새로운 UUID 생성
+                     #{productCompanyId},  -- 생산업체ID
+                     #{sourceId},          -- 재료ID
+                     #{totalQuantity},      -- 주문 수량
+                     #{sourcePrice},        -- 가격
+                     NOW(),                -- 현재 날짜 및 시간
+                     1,-- 상태 ID (기본값)
+                     #{kitOrderId}
+                 );
+    </insert>
+
+    <insert id="insertProductOrderLog">
+        INSERT INTO PRODUCT_ORDER_LOG (
+            PRODUCT_ORDER_LOG_ID,
+            PRODUCT_ORDER_ID,
+            STATUS_ID,
+            PRODUCT_ORDER_DATE
+        )
+        VALUES (
+                   UUID(),
+                   #{productOrderId},
+                   (SELECT STATUS_ID as statusId
+                    FROM PRODUCT_ORDER
+                    WHERE PRODUCT_ORDER_ID = #{productOrderId}),
+                   NOW()
+               );
+    </insert>
+
+
+    <update id="updateKitOrderStatus">
+        UPDATE KIT_ORDER
+        SET STATUS_ID = 2
+        where KIT_ORDER_ID = #{kitOrderId}
+    </update>
+</mapper>
