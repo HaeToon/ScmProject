@@ -62,7 +62,6 @@ public class ProductAdminService {
     }
     public List<ProductCompanySourcePriceDto> getSourcePriceCompanyList(String productCompanyName){
         return productDao.getSourcePriceCompanyList(productCompanyName);
-//        return productDao.getSourcePriceCompanyList();
     }
     public List<ProductOrderCountDto> getProductOrderCount(){
         return productDao.getProductOrderCount();
